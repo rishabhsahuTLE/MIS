@@ -1,4 +1,4 @@
-"""Flask app: serves the Sheet Injector front-end and wraps mis_builder's
+"""Flask app: serves the MIS Editor front-end and wraps mis_builder's
 pipeline as an HTTP endpoint. Deployable as-is as a Vercel Python function
 (this whole module is auto-detected via its module-level `app`), or run
 locally with `python api/index.py` for development.
