@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sheet Injector — MIS Working + Sheet1 Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f6f4ee; --bg-radial:#efe9dc;
+    --text:#1b1917; --muted:#5c564d; --faint:#8b8377;
+    --border:#ddd6c7; --border2:#e8e2d6;
+    --accent:#b4451f; --accent-hover:#8e3516; --accent-tint:#f4e7e0;
+    --panel:#fbfaf6;
+    --ok-text:#1b4d3e; --ok-bg:#eef3ef; --ok-border:#c6d3cb;
+    --err-text:#9c2b1f; --err-bg:#f7e9e6; --err-border:#e3c3ba;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --bg:#1a1815; --bg-radial:#211d17;
+      --text:#f2eee4; --muted:#bdb4a4; --faint:#8f8878;
+      --border:#3a352c; --border2:#2c2820;
+      --accent:#e2794f; --accent-hover:#f0946c; --accent-tint:#3a271f;
+      --panel:#221f19;
+      --ok-text:#8fd7bb; --ok-bg:#17251f; --ok-border:#2c4238;
+      --err-text:#f0958a; --err-bg:#2b1a17; --err-border:#4a2a24;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1a1815; --bg-radial:#211d17;
+    --text:#f2eee4; --muted:#bdb4a4; --faint:#8f8878;
+    --border:#3a352c; --border2:#2c2820;
+    --accent:#e2794f; --accent-hover:#f0946c; --accent-tint:#3a271f;
+    --panel:#221f19;
+    --ok-text:#8fd7bb; --ok-bg:#17251f; --ok-border:#2c4238;
+    --err-text:#f0958a; --err-bg:#2b1a17; --err-border:#4a2a24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:Sora, system-ui, sans-serif;}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{color:var(--accent-hover); text-decoration:underline}
+  .mono{font-family:'IBM Plex Mono', monospace}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+  @keyframes stripe{ to{ background-position:40px 0; } }
+  button,input{font-family:Sora, sans-serif}
+  .wrap{min-height:100vh; background:radial-gradient(120% 80% at 80% -10%, var(--bg-radial) 0%, var(--bg) 55%); padding:0 24px 80px;}
+  .inner{max-width:900px; margin:0 auto;}
+  header{display:flex; align-items:baseline; justify-content:space-between; gap:24px; padding:28px 0 0; border-bottom:1px solid var(--border);}
+  .brand{display:flex; align-items:baseline; gap:14px;}
+  .brand-mark{width:26px; height:26px; background:var(--accent); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:4px; box-sizing:border-box;}
+  .brand-mark span{background:var(--bg);}
+  .brand-mark span:nth-child(2), .brand-mark span:nth-child(3){opacity:.45}
+  .brand-name{font-size:17px; font-weight:600; letter-spacing:-.01em;}
+  .brand-tag{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint);}
+  section{animation:rise .4s ease both;}
+  .eyebrow{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); margin:0 0 20px;}
+  h1{font-size:52px; line-height:1.04; font-weight:600; letter-spacing:-.03em; margin:0 0 18px;}
+  .lede{font-size:16px; line-height:1.6; color:var(--muted); margin:0; max-width:600px;}
+  .settings{background:var(--panel); border:1px solid var(--border2); padding:20px 22px; margin:28px 0 0; display:flex; flex-wrap:wrap; gap:18px 28px;}
+  .settings-label{display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-bottom:7px;}
+  .settings-field{flex:1 1 150px; min-width:130px;}
+  .settings-field input{width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:9px 10px; font-size:13px;}
+  .settings-field input:focus{outline:none; border-color:var(--accent);}
+  .drop{border:1.5px dashed var(--border); background:var(--panel); padding:72px 32px; display:flex; justify-content:center; cursor:pointer; transition:background .2s ease, border-color .2s ease, transform .2s ease; margin-top:28px;}
+  .drop.drag{ border-color:var(--accent); background:var(--accent-tint); transform:scale(1.008); }
+  .drop-inner{display:flex; flex-direction:column; align-items:center; gap:18px; pointer-events:none;}
+  .drop-title{margin:0 0 6px; font-size:19px; font-weight:600; letter-spacing:-.01em;}
+  .drop-sub{margin:0; font-size:12px; color:var(--faint);}
+  .queue-head{display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:10px;}
+  .queue-label{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint);}
+  .link-btn{background:none; border:none; padding:0; font-size:13px; color:var(--faint); cursor:pointer;}
+  .link-btn:hover{color:var(--accent);}
+  .file-row{display:flex; align-items:center; gap:16px; padding:16px 0; border-bottom:1px solid var(--border2);}
+  .file-num{font-size:11px; color:var(--accent); width:22px;}
+  .file-name{flex:1; min-width:0; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .file-size{font-size:12px; color:var(--faint);}
+  .remove-btn{background:none; border:1px solid var(--border); border-radius:999px; width:24px; height:24px; line-height:1; color:var(--faint); cursor:pointer; font-size:14px;}
+  .remove-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .primary-btn{background:var(--accent); color:#fdfbf7; border:none; padding:16px 34px; font-size:15px; font-weight:600; letter-spacing:-.01em; cursor:pointer;}
+  .primary-btn:hover{background:var(--accent-hover);}
+  .primary-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .ghost-btn{background:none; border:1px solid var(--border); padding:12px 24px; font-size:14px; color:var(--muted); cursor:pointer;}
+  .ghost-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .outline-btn{background:none; border:1px solid var(--accent); color:var(--accent); padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;}
+  .outline-btn:hover{background:var(--accent); color:#fdfbf7;}
+  .outline-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .action-row{display:flex; align-items:center; gap:20px; margin-top:28px; flex-wrap:wrap;}
+  .hint{font-size:12px; color:var(--faint);}
+  .spinner{width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; display:inline-block;}
+  .bar-track{height:3px; background:var(--border2); margin-bottom:8px;}
+  .bar-fill{height:100%; background:var(--accent); transition:width .3s linear;}
+  .proc-card{background:var(--panel); border:1px solid var(--border2); padding:20px 22px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px 24px; align-items:center;}
+  .proc-mini-track{grid-column:1/-1; height:4px; background:var(--border2); overflow:hidden;}
+  .proc-mini-fill{height:100%; background-image:linear-gradient(100deg, rgba(255,255,255,.35) 25%, transparent 25% 50%, rgba(255,255,255,.35) 50% 75%, transparent 75%); background-size:40px 40px; animation:stripe .8s linear infinite; transition:width .35s ease;}
+  .result-card{background:var(--panel); border:1px solid var(--border2); padding:18px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .chip{font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:4px 9px; border:1px solid var(--ok-border); background:var(--ok-bg); color:var(--ok-text); white-space:nowrap;}
+  .chip.warn{border-color:var(--err-border); background:var(--err-bg); color:var(--err-text);}
+  .chip.info{border-color:var(--border); background:var(--bg); color:var(--muted);}
+  .warn-list{margin:8px 0 0; padding-left:18px; font-size:12px; color:var(--err-text);}
+  .hidden{display:none !important;}
+  input[type=file]{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="inner">
+
+    <header>
+      <div class="brand">
+        <div class="brand-mark"><span></span><span></span><span></span><span></span></div>
+        <span class="brand-name">Sheet Injector</span>
+      </div>
+      <span class="mono brand-tag">MIS &middot; Working + Sheet1 &middot; xlsx</span>
+    </header>
+
+    <!-- ============ IDLE ============ -->
+    <section id="view-idle">
+      <div style="padding:64px 0 0; max-width:660px">
+        <p class="mono eyebrow">Step 01 — upload</p>
+        <h1>Drop your MIS workbook. Get back Working + Sheet1, rebuilt.</h1>
+        <p class="lede">Each file is sent to the same tested Python pipeline you already use from the command line: it reads the 8 debit/credit sheets, maps every row into <strong style="color:var(--text); font-weight:600">Working</strong> (with live GL Code / Narration / BU formulas), derives <strong style="color:var(--text); font-weight:600">Sheet1</strong> straight from that, and replaces both if they already exist. No Business Unit filtering — every row comes through, so remove any you don't want afterward. Every other sheet is left untouched.</p>
+      </div>
+
+      <div class="settings">
+        <div class="settings-field">
+          <label class="settings-label" for="fldTravelMonth">Travel month</label>
+          <input class="mono" id="fldTravelMonth" value="AUG-26" />
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="fldServiceMonth">Service month</label>
+          <input class="mono" id="fldServiceMonth" value="AUG-26" />
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="fldSubmissionDate">Submission date</label>
+          <input class="mono" id="fldSubmissionDate" value="06-05-2026" />
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="fldGlPrefix">GL prefix</label>
+          <input class="mono" id="fldGlPrefix" value="80003" />
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="fldVendorId">Vendor ID</label>
+          <input class="mono" id="fldVendorId" value="V03136" />
+        </div>
+      </div>
+
+      <div id="dropzone" class="drop">
+        <input type="file" id="fileInput" accept=".xlsx,.xlsm" multiple />
+        <div class="drop-inner">
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="var(--accent)" stroke-width="1.6">
+            <path d="M22 31V11" /><path d="M13 19l9-8 9 8" /><path d="M7 33v3h30v-3" />
+          </svg>
+          <div style="text-align:center">
+            <p class="drop-title">Drag files here, or click to browse</p>
+            <p class="mono drop-sub">.xlsx or .xlsm &middot; up to 20 files &middot; 50 MB each</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="queueBlock" style="margin-top:28px" class="hidden">
+        <div class="queue-head">
+          <span class="mono queue-label">Queue &middot; <span id="queueCount">0</span></span>
+          <button class="link-btn" id="clearAllBtn">Clear all</button>
+        </div>
+        <div id="fileList"></div>
+        <div class="action-row">
+          <button class="primary-btn" id="startBtn">Build Working + Sheet1</button>
+          <span class="mono hint">Originals are never modified — you always get a new file</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESSING ============ -->
+    <section id="view-processing" class="hidden">
+      <div style="padding:64px 0 36px; display:flex; align-items:flex-end; justify-content:space-between; gap:32px; flex-wrap:wrap">
+        <div>
+          <p class="mono eyebrow">Step 02 — processing</p>
+          <h1 style="font-size:44px; line-height:1.06;">Building Working + Sheet1</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px">
+          <span class="spinner"></span>
+          <span class="mono" style="font-size:13px; color:var(--muted)"><span id="doneCount">0</span> of <span id="totalCount">0</span> complete</span>
+        </div>
+      </div>
+
+      <div class="bar-track"><div class="bar-fill" id="overallBar" style="width:0%"></div></div>
+      <p class="mono" style="font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:0 0 32px" id="overallPct">0%</p>
+
+      <div id="procList" style="display:flex; flex-direction:column; gap:10px"></div>
+
+      <button class="ghost-btn" id="cancelBtn" style="margin-top:28px">Cancel</button>
+    </section>
+
+    <!-- ============ DONE ============ -->
+    <section id="view-done" class="hidden">
+      <div style="padding:72px 0 40px; max-width:660px">
+        <p class="mono eyebrow">Step 03 — done</p>
+        <h1 style="font-size:44px; line-height:1.06;">Ready to download</h1>
+        <p class="lede" id="doneSummary"></p>
+      </div>
+
+      <div id="resultList" style="display:flex; flex-direction:column; gap:10px; margin-bottom:36px"></div>
+
+      <div class="action-row">
+        <button class="primary-btn" id="downloadAllBtn">Download all</button>
+        <button class="link-btn" id="backBtn" style="font-size:15px; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:2px">Back to home</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+// ======================================================================
+// UI wiring — actual mapping/formula logic runs server-side in
+// mis_builder (Python); this page only uploads, shows progress, downloads.
+// ======================================================================
+const $ = (id) => document.getElementById(id);
+const views = { idle: $("view-idle"), processing: $("view-processing"), done: $("view-done") };
+function showView(name) { Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== name)); }
+
+function fmtBytes(b) {
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b / 1024).toFixed(0) + " KB";
+  return (b / 1048576).toFixed(1) + " MB";
+}
+
+let files = []; // {id, file, name, size, pct, stage, error, report, outBlob, outName}
+let cancelled = false;
+const STAGES = ["Uploading", "Processing", "Downloading", "Complete"];
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+function renderQueue() {
+  const block = $("queueBlock");
+  block.classList.toggle("hidden", files.length === 0);
+  $("queueCount").textContent = files.length;
+  const list = $("fileList");
+  list.innerHTML = "";
+  files.forEach((f, i) => {
+    const row = document.createElement("div");
+    row.className = "file-row";
+    row.innerHTML = `
+      <span class="mono file-num">${String(i + 1).padStart(2, "0")}</span>
+      <span class="file-name">${f.name}</span>
+      <span class="mono file-size">${fmtBytes(f.size)}</span>
+      <button class="remove-btn" data-id="${f.id}">&times;</button>
+    `;
+    row.querySelector(".remove-btn").addEventListener("click", () => {
+      files = files.filter((x) => x.id !== f.id);
+      renderQueue();
+    });
+    list.appendChild(row);
+  });
+}
+
+function addFiles(list) {
+  const incoming = Array.from(list || [])
+    .filter((f) => /\.xls[xm]$/i.test(f.name))
+    .map((f, i) => ({ id: Date.now() + "-" + i + "-" + Math.random().toString(36).slice(2), file: f, name: f.name, size: f.size, pct: 0, stage: 0 }));
+  if (!incoming.length) return;
+  files = files.concat(incoming).slice(0, 20);
+  renderQueue();
+}
+
+const dropzone = $("dropzone");
+const fileInput = $("fileInput");
+dropzone.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => addFiles(e.target.files));
+dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag"); });
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+dropzone.addEventListener("drop", (e) => { e.preventDefault(); dropzone.classList.remove("drag"); addFiles(e.dataTransfer.files); });
+$("clearAllBtn").addEventListener("click", (e) => { e.stopPropagation(); files = []; renderQueue(); });
+
+function renderProcessing() {
+  $("totalCount").textContent = files.length;
+  const done = files.filter((f) => f.pct >= 100).length;
+  $("doneCount").textContent = done;
+  const overall = files.length ? Math.round(files.reduce((a, f) => a + f.pct, 0) / files.length) : 0;
+  $("overallBar").style.width = overall + "%";
+  $("overallPct").textContent = overall + "%";
+
+  const list = $("procList");
+  list.innerHTML = "";
+  files.forEach((f, i) => {
+    const statusColor = f.error ? "var(--err-text)" : f.pct >= 100 ? "var(--ok-text)" : "var(--faint)";
+    const barColor = f.error ? "var(--err-text)" : f.pct >= 100 ? "var(--ok-text)" : "var(--accent)";
+    const card = document.createElement("div");
+    card.className = "proc-card";
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; gap:14px; min-width:0">
+        <span class="mono" style="font-size:11px; color:var(--accent)">${String(i + 1).padStart(2, "0")}</span>
+        <span style="font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${f.name}</span>
+      </div>
+      <span class="mono" style="font-size:12px; color:${statusColor}; white-space:nowrap">${f.error ? "Failed" : STAGES[f.stage]}</span>
+      <div class="proc-mini-track"><div class="proc-mini-fill" style="width:${f.pct}%; background:${barColor}"></div></div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function currentSettings() {
+  return {
+    travel_month: $("fldTravelMonth").value.trim(),
+    service_month: $("fldServiceMonth").value.trim(),
+    submission_date: $("fldSubmissionDate").value.trim(),
+    gl_prefix: $("fldGlPrefix").value.trim(),
+    vendor_id: $("fldVendorId").value.trim(),
+  };
+}
+
+function processOne(f) {
+  return new Promise((resolve) => {
+    f.stage = 0; f.pct = 2; renderProcessing();
+
+    const form = new FormData();
+    form.append("file", f.file, f.name);
+    const settings = currentSettings();
+    Object.entries(settings).forEach(([k, v]) => form.append(k, v));
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/process");
+    xhr.responseType = "blob";
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (!e.lengthComputable) return;
+      f.pct = Math.min(60, Math.round((e.loaded / e.total) * 60));
+      renderProcessing();
+    });
+    xhr.upload.addEventListener("load", () => {
+      f.stage = 1; f.pct = 70; renderProcessing();
+    });
+
+    xhr.onload = async () => {
+      const contentType = xhr.getResponseHeader("Content-Type") || "";
+      if (xhr.status >= 200 && xhr.status < 300 && !contentType.includes("application/json")) {
+        f.stage = 2; f.pct = 92; renderProcessing();
+        f.report = JSON.parse(xhr.getResponseHeader("X-Report") || "{}");
+        f.outBlob = xhr.response;
+        f.outName = f.name.replace(/\.(xls[xm])$/i, "-built.$1");
+        f.stage = 3; f.pct = 100; renderProcessing();
+      } else {
+        try {
+          const text = await xhr.response.text();
+          const data = JSON.parse(text);
+          f.error = data.error || "Processing failed.";
+        } catch (e) {
+          f.error = "Processing failed (unreadable server response).";
+        }
+        f.pct = 100; renderProcessing();
+      }
+      resolve();
+    };
+    xhr.onerror = () => {
+      f.error = "Could not reach the server.";
+      f.pct = 100; renderProcessing();
+      resolve();
+    };
+    xhr.send(form);
+  });
+}
+
+async function runAll() {
+  cancelled = false;
+  showView("processing");
+  renderProcessing();
+  for (const f of files) {
+    if (cancelled) break;
+    await processOne(f);
+  }
+  if (!cancelled) {
+    await sleep(200);
+    showView("done");
+    renderDone();
+  }
+}
+
+$("startBtn").addEventListener("click", runAll);
+$("cancelBtn").addEventListener("click", () => {
+  cancelled = true;
+  files.forEach((f) => { f.pct = 0; f.stage = 0; f.error = null; f.outBlob = null; });
+  showView("idle");
+  renderQueue();
+});
+
+function statChip(f) {
+  if (f.error) return `<span class="chip warn">Error</span>`;
+  const r = f.report || {};
+  let chip = `<span class="chip">${r.working_row_count ?? "?"} Working rows</span>`;
+  chip += ` <span class="chip info">${r.sheet1_invoice_count ?? "?"} invoice / ${r.sheet1_credit_note_count ?? "?"} credit note in Sheet1</span>`;
+  return chip;
+}
+
+function saveFile(f, statusEl) {
+  if (!f.outBlob) return;
+  const url = URL.createObjectURL(f.outBlob);
+  const a = document.createElement("a");
+  a.href = url; a.download = f.outName; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  statusEl.textContent = "Saved";
+}
+
+function renderDone() {
+  const okCount = files.filter((f) => !f.error).length;
+  const totalRows = files.reduce((a, f) => a + (f.report ? f.report.working_row_count || 0 : 0), 0);
+  $("doneSummary").textContent = `${okCount} of ${files.length} file${files.length === 1 ? "" : "s"} built — ${totalRows} Working rows total. No rows were filtered out; review and remove any you don't want before filing.`;
+
+  const list = $("resultList");
+  list.innerHTML = "";
+  files.forEach((f, i) => {
+    const card = document.createElement("div");
+    card.className = "result-card";
+    const missing = f.report && f.report.sheets_not_found && f.report.sheets_not_found.length
+      ? [`Sheet(s) not found, skipped: ${f.report.sheets_not_found.join(", ")}`] : [];
+    card.innerHTML = `
+      <span class="mono" style="font-size:11px; color:var(--accent)">${String(i + 1).padStart(2, "0")}</span>
+      <span style="flex:1; min-width:180px; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${f.error ? f.name : f.outName}</span>
+      ${statChip(f)}
+      <button class="outline-btn" ${f.error ? "disabled" : ""}>Download</button>
+      ${missing.length ? `<ul class="warn-list" style="flex-basis:100%">${missing.map((w) => `<li>${w}</li>`).join("")}</ul>` : ""}
+      ${f.error ? `<p style="flex-basis:100%; margin:4px 0 0; font-size:12px; color:var(--err-text)">${f.error}</p>` : ""}
+    `;
+    const btn = card.querySelector(".outline-btn");
+    if (!f.error) btn.addEventListener("click", () => saveFile(f, btn));
+    list.appendChild(card);
+  });
+}
+
+$("downloadAllBtn").addEventListener("click", () => {
+  const cards = Array.from($("resultList").children);
+  files.forEach((f, i) => {
+    if (f.error) return;
+    const btn = cards[i].querySelector(".outline-btn");
+    saveFile(f, btn);
+  });
+});
+
+$("backBtn").addEventListener("click", () => {
+  files = [];
+  showView("idle");
+  renderQueue();
+});
+</script>
+</body>
+</html>
