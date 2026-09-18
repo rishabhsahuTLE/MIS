@@ -7,6 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script>
+  // Applied before first paint so there's no flash of the wrong theme.
+  try {
+    var savedTheme = localStorage.getItem("si-theme");
+    if (savedTheme === "light" || savedTheme === "dark") {
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    }
+  } catch (e) {}
+</script>
 <style>
   :root{
     --bg:#f6f4ee; --bg-radial:#efe9dc;
@@ -102,9 +111,21 @@
   .warn-list{margin:8px 0 0; padding-left:18px; font-size:12px; color:var(--err-text);}
   .hidden{display:none !important;}
   input[type=file]{display:none;}
+  .theme-toggle{position:fixed; top:20px; right:20px; z-index:50; width:38px; height:38px; border-radius:999px; background:var(--panel); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text); transition:border-color .2s ease, color .2s ease;}
+  .theme-toggle:hover{border-color:var(--accent); color:var(--accent);}
+  .theme-toggle svg{width:18px; height:18px;}
 </style>
 </head>
 <body>
+<button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">
+  <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/>
+  </svg>
+  <svg id="themeIconMoon" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+  </svg>
+</button>
 <div class="wrap">
   <div class="inner">
 
@@ -221,6 +242,24 @@
 const $ = (id) => document.getElementById(id);
 const views = { idle: $("view-idle"), processing: $("view-processing"), done: $("view-done") };
 function showView(name) { Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== name)); }
+
+function currentTheme() {
+  const explicit = document.documentElement.getAttribute("data-theme");
+  if (explicit === "light" || explicit === "dark") return explicit;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function applyThemeIcon() {
+  const dark = currentTheme() === "dark";
+  $("themeIconSun").classList.toggle("hidden", dark);
+  $("themeIconMoon").classList.toggle("hidden", !dark);
+}
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  try { localStorage.setItem("si-theme", theme); } catch (e) {}
+  applyThemeIcon();
+}
+$("themeToggle").addEventListener("click", () => setTheme(currentTheme() === "dark" ? "light" : "dark"));
+applyThemeIcon();
 
 function fmtBytes(b) {
   if (b < 1024) return b + " B";
