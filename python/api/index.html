@@ -9,12 +9,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script>
   // Applied before first paint so there's no flash of the wrong theme.
+  // Defaults to light regardless of OS preference until the user toggles it.
+  var savedTheme = "light";
   try {
-    var savedTheme = localStorage.getItem("si-theme");
-    if (savedTheme === "light" || savedTheme === "dark") {
-      document.documentElement.setAttribute("data-theme", savedTheme);
-    }
+    var stored = localStorage.getItem("si-theme");
+    if (stored === "light" || stored === "dark") savedTheme = stored;
   } catch (e) {}
+  document.documentElement.setAttribute("data-theme", savedTheme);
 </script>
 <style>
   :root{
