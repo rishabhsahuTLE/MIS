@@ -10,6 +10,7 @@ choice).
 from dataclasses import dataclass
 
 from .config import PeriodConfig, SourceSheet
+from .dates import parse_invoice_date
 
 
 def _to_text(value) -> str:
@@ -36,7 +37,7 @@ class WorkingRow:
     nature_of_ticket: str                 # H
     amounts: float                        # I
     invoice_number: str                   # J
-    invoice_date_raw: str                 # K (as found in the source sheet)
+    invoice_date: object                  # K (parsed date, or None)
     gl: str                               # L
     gl_code: str                          # M (computed)
     gl_code_formula: str                  # M formula string
@@ -55,12 +56,15 @@ def build_working_rows(
     source_rows_by_sheet: dict[str, list[dict]],
     source_sheets: list[SourceSheet],
     period: PeriodConfig,
-) -> list[WorkingRow]:
+) -> tuple[list[WorkingRow], list[str]]:
     rows: list[WorkingRow] = []
+    date_warnings: list[str] = []
     row_number = 2  # Working row 1 is the header
 
     for sheet_config in source_sheets:
-        for record in source_rows_by_sheet.get(sheet_config.name, []):
+        for source_row_index, record in enumerate(
+            source_rows_by_sheet.get(sheet_config.name, []), start=1
+        ):
             cost_code = _to_text(record["cost_code"])
             name = _to_text(record["name_of_passenger"])
             emp_id = _to_text(record["emp_id"])
@@ -76,6 +80,14 @@ def build_working_rows(
             gl_code_dup = cost_code
             bu = gl_code_dup[-3:]
 
+            raw_date = record["invoice_date"]
+            invoice_date = parse_invoice_date(raw_date)
+            if invoice_date is None and raw_date not in (None, ""):
+                date_warnings.append(
+                    f"{sheet_config.name} row {source_row_index}: could not "
+                    f"parse invoice date {raw_date!r}"
+                )
+
             r = row_number
             rows.append(
                 WorkingRow(
@@ -90,7 +102,7 @@ def build_working_rows(
                     nature_of_ticket=nature_of_ticket,
                     amounts=record["amounts"],
                     invoice_number=_to_text(record["invoice_number"]),
-                    invoice_date_raw=record["invoice_date"],
+                    invoice_date=invoice_date,
                     gl=period.gl_prefix,
                     gl_code=gl_code,
                     gl_code_formula=f'=CONCATENATE(L{r},"-",E{r})',
@@ -110,4 +122,4 @@ def build_working_rows(
             )
             row_number += 1
 
-    return rows
+    return rows, date_warnings

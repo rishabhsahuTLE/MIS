@@ -138,6 +138,21 @@ SOURCE_SHEETS = [
         },
     ),
     SourceSheet(
+        name="BUS CREDIT",
+        kind="Credit Note",
+        nature_of_transaction="Bus Ticket",
+        nature_of_ticket="Credit",
+        columns={
+            "name_of_passenger": "Passenger Name",
+            "location": "Sector",
+            "cost_code": "Cost Code",
+            "emp_id": "Employee Code",
+            "amounts": "Refund Amount",
+            "invoice_number": "Refund Reference No.",
+            "invoice_date": "Refund Reference Date",
+        },
+    ),
+    SourceSheet(
         name="HOTEL CREDIT",
         kind="Credit Note",
         nature_of_transaction="Hotel ",

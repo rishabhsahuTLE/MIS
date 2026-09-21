@@ -458,12 +458,15 @@ function renderDone() {
     card.className = "result-card";
     const missing = f.report && f.report.sheets_not_found && f.report.sheets_not_found.length
       ? [`Sheet(s) not found, skipped: ${f.report.sheets_not_found.join(", ")}`] : [];
+    const badDates = f.report && f.report.unparsed_invoice_dates && f.report.unparsed_invoice_dates.length
+      ? f.report.unparsed_invoice_dates.map((w) => `Invoice date left blank — ${w}`) : [];
+    const warnings = [...missing, ...badDates];
     card.innerHTML = `
       <span class="mono" style="font-size:11px; color:var(--accent)">${String(i + 1).padStart(2, "0")}</span>
       <span style="flex:1; min-width:180px; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${f.error ? f.name : f.outName}</span>
       ${statChip(f)}
       <button class="outline-btn" ${f.error ? "disabled" : ""}>Download</button>
-      ${missing.length ? `<ul class="warn-list" style="flex-basis:100%">${missing.map((w) => `<li>${w}</li>`).join("")}</ul>` : ""}
+      ${warnings.length ? `<ul class="warn-list" style="flex-basis:100%">${warnings.map((w) => `<li>${w}</li>`).join("")}</ul>` : ""}
       ${f.error ? `<p style="flex-basis:100%; margin:4px 0 0; font-size:12px; color:var(--err-text)">${f.error}</p>` : ""}
     `;
     const btn = card.querySelector(".outline-btn");

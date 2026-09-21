@@ -11,7 +11,7 @@ from .sheet1 import Sheet1Layout
 from .working import WorkingRow
 
 HEADER_FONT = Font(bold=True)
-DATE_FORMAT = "dd-mmm-yyyy"
+DATE_FORMAT = "dd-mm-yyyy"
 
 
 def _replace_sheet(wb: Workbook, name: str):
@@ -38,7 +38,7 @@ def write_working_sheet(wb: Workbook, rows: list[WorkingRow]):
             w.nature_of_ticket,         # H
             w.amounts,                  # I
             w.invoice_number,           # J
-            w.invoice_date_raw,         # K
+            w.invoice_date,             # K
             w.gl,                       # L
             w.gl_code_formula,          # M
             w.narration_formula,        # N
@@ -48,6 +48,8 @@ def write_working_sheet(wb: Workbook, rows: list[WorkingRow]):
             w.bu_formula,               # R
             w.service_month,            # S
         ])
+        if w.invoice_date is not None:
+            ws.cell(row=ws.max_row, column=11).number_format = DATE_FORMAT
     return ws
 
 

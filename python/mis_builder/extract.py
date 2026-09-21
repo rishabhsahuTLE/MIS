@@ -5,6 +5,7 @@ normalized row dicts, per the mapping in config.SourceSheet.
 from openpyxl.worksheet.worksheet import Worksheet
 
 from .config import HEADER_ROW, REQUIRED_FIELDS, TOTAL_MARKER, SourceSheet
+from .formula_resolver import resolve_cell
 
 
 class SheetLayoutError(ValueError):
@@ -46,12 +47,18 @@ def _row_is_stop_marker(ws: Worksheet, row: int, first_col: int, last_col: int) 
     return False
 
 
-def read_source_sheet(ws: Worksheet, sheet_config: SourceSheet) -> list[dict]:
+def read_source_sheet(
+    ws: Worksheet, ws_values: Worksheet, sheet_config: SourceSheet
+) -> list[dict]:
     """Read all data rows of a source sheet into normalized dicts.
 
     Stops at the first fully-blank row or a row whose first cell reads
     "Total" -- this also correctly excludes trailing junk (summary blocks,
     orphan rows) that sits below a sheet's real data table.
+
+    `ws_values` must be the same sheet re-opened with `data_only=True`, used
+    to resolve any mapped cell that holds a formula (a lookup from another
+    cell/sheet) to its real value instead of a stale cached result.
     """
     header_index = _build_header_index(ws, HEADER_ROW)
 
@@ -86,7 +93,10 @@ def read_source_sheet(ws: Worksheet, sheet_config: SourceSheet) -> list[dict]:
         if _row_is_stop_marker(ws, row_num, first_col, last_col):
             break
         record = {
-            field_name: ws.cell(row=row_num, column=col).value
+            field_name: resolve_cell(
+                ws.cell(row=row_num, column=col),
+                ws_values.cell(row=row_num, column=col),
+            )
             for field_name, col in field_to_col.items()
         }
         rows.append(record)

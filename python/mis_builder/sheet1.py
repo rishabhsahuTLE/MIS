@@ -9,39 +9,8 @@ Sheet1 is two tables stacked with a gap between them:
 """
 
 from dataclasses import dataclass
-from datetime import datetime
 
 from .config import SHEET1_TABLE_GAP
-
-
-_DATE_FORMATS = (
-    "%d-%b-%Y",              # 16-AUG-2026
-    "%d-%m-%Y %I:%M:%S %p",  # 17-08-2026 12:00:00 AM
-    "%d-%m-%Y",
-    "%d/%m/%Y",
-    "%Y-%m-%d",
-)
-
-
-def parse_invoice_date(value):
-    """Return a python date/datetime for a source 'Reference Date' cell.
-
-    Source cells are inconsistently either already-parsed datetimes (if
-    Excel stored them as a real date) or text in one of a few formats.
-    Returns None (and leaves the cell blank) if nothing matches, rather than
-    guessing wrong.
-    """
-    if value is None or value == "":
-        return None
-    if isinstance(value, datetime):
-        return value
-    text = str(value).strip()
-    for fmt in _DATE_FORMATS:
-        try:
-            return datetime.strptime(text, fmt)
-        except ValueError:
-            continue
-    return None
 
 
 @dataclass
@@ -66,7 +35,7 @@ def _to_sheet1_row(w) -> Sheet1Row:
         cost_code=w.cost_code,
         emp_id=w.emp_id,
         invoice_number=w.invoice_number,
-        invoice_date=parse_invoice_date(w.invoice_date_raw),
+        invoice_date=w.invoice_date,
         gl_code=w.gl_code,
         narration=w.narration,
         vendor_id=w.vendor_id,

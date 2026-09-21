@@ -50,10 +50,11 @@ def run(args=None) -> int:
     )
 
     wb = load_workbook(input_path, data_only=False)
+    wb_values = load_workbook(input_path, data_only=True)
 
     print(f"Reading source sheets from {input_path.name}:")
     try:
-        result = process_workbook(wb, period)
+        result = process_workbook(wb, wb_values, period)
     except SheetLayoutError as exc:
         print(f"  ! {exc}", file=sys.stderr)
         raise
@@ -62,6 +63,8 @@ def run(args=None) -> int:
         print(f"  - {name}: {count} rows")
     for name in result.sheets_not_found:
         print(f"  - {name}: NOT FOUND, skipping")
+    for warning in result.unparsed_invoice_dates:
+        print(f"  ! {warning}")
 
     wb.save(output_path)
 

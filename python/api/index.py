@@ -17,7 +17,7 @@ from flask import Flask, Response, request, send_file
 from openpyxl import load_workbook
 
 from mis_builder.config import PeriodConfig
-from mis_builder.pipeline import SheetLayoutError, process_workbook
+from mis_builder.pipeline import SheetLayoutError, UnresolvedLookupError, process_workbook
 
 app = Flask(__name__)
 
@@ -45,14 +45,16 @@ def process():
         vendor_id=request.form.get("vendor_id") or PeriodConfig.vendor_id,
     )
 
+    upload_bytes = upload.read()
     try:
-        wb = load_workbook(io.BytesIO(upload.read()), data_only=False)
+        wb = load_workbook(io.BytesIO(upload_bytes), data_only=False)
+        wb_values = load_workbook(io.BytesIO(upload_bytes), data_only=True)
     except Exception:
         return {"error": "Could not read this file — is it a valid .xlsx/.xlsm?"}, 400
 
     try:
-        result = process_workbook(wb, period)
-    except SheetLayoutError as exc:
+        result = process_workbook(wb, wb_values, period)
+    except (SheetLayoutError, UnresolvedLookupError) as exc:
         return {"error": str(exc)}, 422
     except Exception as exc:  # pragma: no cover - defensive: surface, don't 500 silently
         return {"error": f"Unexpected error while processing: {exc}"}, 500
@@ -64,6 +66,7 @@ def process():
     report = {
         "rows_per_sheet": result.rows_per_sheet,
         "sheets_not_found": result.sheets_not_found,
+        "unparsed_invoice_dates": result.unparsed_invoice_dates,
         "working_row_count": result.working_row_count,
         "sheet1_invoice_count": result.sheet1_invoice_count,
         "sheet1_credit_note_count": result.sheet1_credit_note_count,
